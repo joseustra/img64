@@ -77,7 +77,7 @@ To use the image file, just do like a normal *<img>* tag with the **http://local
 <html>
 <head></head>
 <body>
-  <img src="" style="width:200px" data-image="http://localhost:8800?url=http://example.com/image.jpg" alt="image" />
+  <img src="http://localhost:8800?url=http://example.com/image.jpg" style="width:200px" alt="image" />
 </body>
 </html>
 ```
