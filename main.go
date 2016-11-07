@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/base64"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -47,10 +46,11 @@ func main() {
 		Cors: []string{os.Getenv("CORS")},
 		UnauthenticatedRoutes: []string{"*"},
 	}
-	m := minion.New(opts)
+	m := minion.Classic(opts)
 
 	ctx := &Context{db: openDB()}
 
+	m.Get("/b", ctx.EncodedImageHandler)
 	m.Get("/", ctx.ImageHandler)
 
 	port, err := strconv.Atoi(os.Getenv("PORT"))
@@ -60,19 +60,52 @@ func main() {
 	m.Run(port)
 }
 
+// Image representation of an image
 type Image struct {
 	URL     string
 	Content string
 }
 
-// ImageHandler grab the url download the image, convert to base64 and return
-func (ctx *Context) ImageHandler(c *minion.Context) {
+// EncodedImageHandler grab the url download the image, convert to base64 and return
+func (ctx *Context) EncodedImageHandler(c *minion.Context) {
 	image := &Image{URL: c.ByQuery("url")}
 	if len(image.URL) == 0 {
 		c.Text(http.StatusBadRequest, "")
 		return
 	}
 
+	err := getImageContent(ctx, image)
+	if err != nil {
+		c.Text(http.StatusBadRequest, "")
+		return
+	}
+
+	c.Text(http.StatusOK, image.Content)
+}
+
+// ImageHandler grab the url download the image, convert to base64 to cache but returns the image file
+func (ctx *Context) ImageHandler(c *minion.Context) {
+	if len(c.ByQuery("url")) == 0 {
+		c.Text(http.StatusBadRequest, "")
+		return
+	}
+
+	image := &Image{URL: c.ByQuery("url")}
+	err := getImageContent(ctx, image)
+	if err != nil {
+		c.Text(http.StatusBadRequest, "")
+		return
+	}
+
+	decodedImg, err := base64.StdEncoding.DecodeString(image.Content)
+	if err != nil {
+		c.Text(http.StatusBadRequest, "")
+	}
+
+	c.Data(http.StatusOK, decodedImg)
+}
+
+func getImageContent(ctx *Context, image *Image) error {
 	ctx.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("images"))
 		v := b.Get([]byte(image.URL))
@@ -84,15 +117,14 @@ func (ctx *Context) ImageHandler(c *minion.Context) {
 
 	if len(image.Content) == 0 {
 		resp, err := http.Get(image.URL)
-
 		if err != nil {
-			c.Text(http.StatusBadRequest, err.Error())
-			return
+			// c.Text(http.StatusBadRequest, err.Error())
+			return err
 		}
 
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			fmt.Println(err.Error())
+			return err
 		}
 
 		image.Content = base64.StdEncoding.EncodeToString(body)
@@ -103,6 +135,5 @@ func (ctx *Context) ImageHandler(c *minion.Context) {
 			return err
 		})
 	}
-
-	c.Text(http.StatusOK, image.Content)
+	return nil
 }

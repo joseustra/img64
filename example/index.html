@@ -1,0 +1,34 @@
+<html>
+<head>
+  <script
+  src="https://code.jquery.com/jquery-3.1.1.min.js"
+  integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8="
+  crossorigin="anonymous"></script>
+  <script type="text/javascript" charset="utf-8">                                
+    $(document).ready(function() {    
+      $("img").each(function(){                                                                                        
+        var  _this = $(this);
+        var url = _this.data("image");
+        if (url != undefined) {
+          $.ajax({
+            url: _this.data("image"),      
+          }).done(function(data){                                                                                            
+            _this.attr("src", "data:image/x;base64," + data);                                                               
+          });
+        }                                                                                                                                                                                                           
+      });
+    });                                                                                                                            
+  </script>                                                                                                                      
+</head>
+<body>
+  <p>
+    with base64
+    <img src="" style="width:200px" data-image="http://localhost:8800/b?url=http://www10.honda.com.br/linha500/cb500x/img/galeria/moto-1.jpg" alt="image" />
+  </p>
+
+  <p>
+    with image file
+    <img src="http://localhost:8800?url=http://www10.honda.com.br/linha500/cb500x/img/galeria/moto-1.jpg" style="width:200px" alt="image" />      
+  </p>                                                                          
+</body>
+</html>
