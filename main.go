@@ -44,7 +44,7 @@ func openDB() *bolt.DB {
 func main() {
 	opts := minion.Options{
 		Cors: []string{os.Getenv("CORS")},
-		UnauthenticatedRoutes: []string{"*"},
+		UnauthenticatedRoutes: minion.AllRoutes,
 	}
 	m := minion.Classic(opts)
 
@@ -68,7 +68,7 @@ type Image struct {
 
 // EncodedImageHandler grab the url download the image, convert to base64 and return
 func (ctx *Context) EncodedImageHandler(c *minion.Context) {
-	image := &Image{URL: c.ByQuery("url")}
+	image := &Image{URL: c.Req.URL.Query().Get("url")}
 	if len(image.URL) == 0 {
 		c.Text(http.StatusBadRequest, "")
 		return
@@ -85,12 +85,12 @@ func (ctx *Context) EncodedImageHandler(c *minion.Context) {
 
 // ImageHandler grab the url download the image, convert to base64 to cache but returns the image file
 func (ctx *Context) ImageHandler(c *minion.Context) {
-	if len(c.ByQuery("url")) == 0 {
+	if len(c.Req.URL.Query().Get("url")) == 0 {
 		c.Text(http.StatusBadRequest, "")
 		return
 	}
 
-	image := &Image{URL: c.ByQuery("url")}
+	image := &Image{URL: c.Req.URL.Query().Get("url")}
 	err := getImageContent(ctx, image)
 	if err != nil {
 		c.Text(http.StatusBadRequest, "")
@@ -102,7 +102,7 @@ func (ctx *Context) ImageHandler(c *minion.Context) {
 		c.Text(http.StatusBadRequest, "")
 	}
 
-	c.Data(http.StatusOK, decodedImg)
+	c.Text(http.StatusOK, string(decodedImg))
 }
 
 func getImageContent(ctx *Context, image *Image) error {
@@ -135,5 +135,6 @@ func getImageContent(ctx *Context, image *Image) error {
 			return err
 		})
 	}
+
 	return nil
 }
